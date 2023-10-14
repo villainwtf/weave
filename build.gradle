@@ -1,0 +1,82 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'java'
+    id 'maven-publish'
+}
+
+def cmdGitHash = 'git rev-parse --short HEAD'.execute().getText().trim()
+def cmdGitBranch = 'git rev-parse --abbrev-ref HEAD'.execute().getText().trim()
+
+ext {
+    gitHash = cmdGitHash
+    gitBranch = cmdGitBranch
+}
+
+group = 'wtf.villain'
+version = gitHash
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+assemble.dependsOn shadowJar
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+
+    implementation 'org.jetbrains:annotations:24.0.1'
+
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-jackson:2.9.0'
+
+    implementation 'com.ibm.icu:icu4j:51.1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    archiveVersion.set(gitHash)
+    archiveFileName.set("${project.name}-${project.version}.jar")
+
+    relocate 'com.fasterxml.jackson', 'wtf.villain.weave.lib.jackson'
+    relocate 'com.ibm.icu', 'wtf.villain.weave.lib.icu'
+    relocate 'okhttp3', 'wtf.villain.weave.lib.okhttp3'
+    relocate 'okio', 'wtf.villain.weave.lib.okio'
+    relocate 'org.intellij.lang.annotations', 'wtf.villain.weave.lib.intellij'
+    relocate 'org.jetbrains.annotations', 'wtf.villain.weave.lib.jetbrains'
+    relocate 'retrofit2', 'wtf.villain.weave.lib.retrofit2'
+}
+
+publishing {
+    publications {
+        shadowJar(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url 'https://repo.pvparca.de/releases'
+            credentials {
+                username = arcadeUsername
+                password = arcadeToken
+            }
+        }
+    }
+}
