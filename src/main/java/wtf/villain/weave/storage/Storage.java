@@ -111,11 +111,14 @@ public final class Storage {
                                 throw new IllegalStateException("No translations for language " + language.tag());
                             }
 
+                            Map<String, Translation> translationMap = new HashMap<>();
+
                             keyToValue.forEach((key, value) -> {
                                 // We iterate through each (translation key -> text) pair and add it to the map.
-                                translations.computeIfAbsent(language.tag(), __ -> new HashMap<>())
-                                      .put(key, new Translation(value, processor));
+                                translationMap.put(key, new Translation(value, processor));
                             });
+
+                            translations.put(language.tag(), translationMap);
                         }))
                   .toList();
 
