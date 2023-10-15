@@ -49,7 +49,7 @@ public interface Language {
 
     @NotNull
     static Language findOrCreate(@NotNull String tag, @NotNull String name) {
-        return LANGUAGES.getOrDefault(tag, create(name, tag));
+        return LANGUAGES.computeIfAbsent(tag, __ -> create(name, tag));
     }
 
     @NotNull
