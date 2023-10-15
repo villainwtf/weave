@@ -114,6 +114,12 @@ public final class Storage {
                             Map<String, Translation> translationMap = new HashMap<>();
 
                             keyToValue.forEach((key, value) -> {
+                                if (value == null) {
+                                    // The value can be null if this key is not translated in the given language.
+                                    // Example: "en" has "hello" -> "Hello World!", but "de" doesn't have this key translated yet.
+                                    return;
+                                }
+
                                 // We iterate through each (translation key -> text) pair and add it to the map.
                                 translationMap.put(key, new Translation(value, processor));
                             });
