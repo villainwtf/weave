@@ -70,13 +70,4 @@ publishing {
             from components.java
         }
     }
-    repositories {
-        maven {
-            url 'https://repo.pvparca.de/releases'
-            credentials {
-                username = arcadeUsername
-                password = arcadeToken
-            }
-        }
-    }
 }
