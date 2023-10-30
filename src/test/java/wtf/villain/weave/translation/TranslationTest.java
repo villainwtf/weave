@@ -22,6 +22,14 @@ public class TranslationTest {
     }
 
     @Test
+    public void testVariables() {
+        Translation translation = new Translation("Hello {name}!");
+        assertEquals("Hello John!", translation.format(Map.of("name", "John")));
+        assertEquals("Hello Peter!", translation.format(Map.of("name", "Peter")));
+        assertEquals("Hello world!", translation.format(Map.of("name", "world")));
+    }
+
+    @Test
     public void testPreparedVariable() {
         Translation translation = new Translation("Hello {name}!");
         translation.prepare("name");
