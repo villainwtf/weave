@@ -30,6 +30,37 @@ public class TranslationTest {
     }
 
     @Test
+    public void testNested() {
+        Translation translation = new Translation("""
+              {applesCount, plural,\s
+                  =0 {{pearsCount, plural,\s
+                      =0 {{orangesCount, plural,\s
+                          =0 {I have no fruit}
+                          other {I have some oranges}
+                      }}
+                      other {{orangesCount, plural,\s
+                          =0 {I have some pears}
+                          other {I have some pears and some oranges}
+                      }}
+                  }}
+                  other {{pearsCount, plural,\s
+                      =0 {{orangesCount, plural,\s
+                          =0 {I have some apples}
+                          other {I have some apples and some oranges}
+                      }}
+                      other {{orangesCount, plural,\s
+                          =0 {I have some apples and some pears}
+                          other {I have some apples, some pears, and some oranges}
+                      }}
+                  }}
+              }""");
+        assertEquals("I have no fruit", translation.format(Map.of("applesCount", 0, "pearsCount", 0, "orangesCount", 0)));
+        assertEquals("I have some oranges", translation.format(Map.of("applesCount", 0, "pearsCount", 0, "orangesCount", 1)));
+        assertEquals("I have some pears and some oranges", translation.format(Map.of("applesCount", 0, "pearsCount", 1, "orangesCount", 1)));
+        assertEquals("I have some apples, some pears, and some oranges", translation.format(Map.of("applesCount", 1, "pearsCount", 1, "orangesCount", 1)));
+    }
+
+    @Test
     public void testPreparedVariable() {
         Translation translation = new Translation("Hello {name}!");
         translation.prepare("name");
