@@ -11,11 +11,14 @@ import java.util.Map;
 public final class PreparedTranslation {
 
     private final Translation translation;
+    private final MessageFormat messageFormat;
+
     private final String[] keys;
     private final Map<String, Object> preparedFormats = new HashMap<>();
 
     PreparedTranslation(@NotNull Translation translation, @NotNull List<String> keys) {
         this.translation = translation;
+        this.messageFormat = new MessageFormat(translation.value());
         this.keys = keys.toArray(new String[0]);
         keys.forEach(key -> preparedFormats.put(key, null));
     }
@@ -28,13 +31,11 @@ public final class PreparedTranslation {
      */
     @NotNull
     public String format(@NotNull Object... objects) {
-        MessageFormat messageFormat = new MessageFormat(translation.value());
-
         for (int i = 0; i < keys.length; i++) {
             preparedFormats.put(keys[i], objects[i]);
         }
 
-        return translation.processor().apply(translation, messageFormat.format(preparedFormats));
+        return translation.processor().apply(translation, this.messageFormat.format(preparedFormats));
     }
 
     /**
@@ -45,13 +46,11 @@ public final class PreparedTranslation {
      */
     @NotNull
     public String format(@NotNull List<Object> objects) {
-        MessageFormat messageFormat = new MessageFormat(translation.value());
-
         for (int i = 0; i < keys.length; i++) {
             preparedFormats.put(keys[i], objects.get(i));
         }
 
-        return translation.processor().apply(translation, messageFormat.format(preparedFormats));
+        return translation.processor().apply(translation, this.messageFormat.format(preparedFormats));
     }
 
     @Override
