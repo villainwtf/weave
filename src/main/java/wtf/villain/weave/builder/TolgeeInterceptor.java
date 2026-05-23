@@ -15,7 +15,7 @@ public class TolgeeInterceptor implements Interceptor {
     @Override
     public @NotNull Response intercept(@NotNull Chain chain) throws IOException {
         return chain.proceed(chain.request().newBuilder()
-              .addHeader("X-API-Key", apiKey)
-              .build());
+            .addHeader("X-API-Key", apiKey)
+            .build());
     }
 }

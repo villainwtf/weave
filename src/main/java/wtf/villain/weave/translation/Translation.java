@@ -45,6 +45,7 @@ public final class Translation {
      *
      * @param formats the formats to use
      * @return the formatted translation
+     *
      * @throws IllegalStateException if the translation has not been prepared
      */
     @NotNull

@@ -62,7 +62,7 @@ public final class LanguagesResponse {
         @Override
         public String toString() {
             return String.format("Language[id=%d, name=%s, tag=%s, originalName=%s, flagEmoji=%s, base=%b]",
-                  id, name, tag, originalName, flagEmoji, base);
+                id, name, tag, originalName, flagEmoji, base);
         }
 
         @Override

@@ -3,7 +3,10 @@ package wtf.villain.weave.translation;
 import org.junit.jupiter.api.Test;
 import wtf.villain.weave.translation.process.WeaveProcessor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -32,28 +35,28 @@ public class TranslationTest {
     @Test
     public void testNested() {
         Translation translation = new Translation("""
-              {applesCount, plural,\s
-                  =0 {{pearsCount, plural,\s
-                      =0 {{orangesCount, plural,\s
-                          =0 {I have no fruit}
-                          other {I have some oranges}
-                      }}
-                      other {{orangesCount, plural,\s
-                          =0 {I have some pears}
-                          other {I have some pears and some oranges}
-                      }}
-                  }}
-                  other {{pearsCount, plural,\s
-                      =0 {{orangesCount, plural,\s
-                          =0 {I have some apples}
-                          other {I have some apples and some oranges}
-                      }}
-                      other {{orangesCount, plural,\s
-                          =0 {I have some apples and some pears}
-                          other {I have some apples, some pears, and some oranges}
-                      }}
-                  }}
-              }""");
+            {applesCount, plural,\s
+                =0 {{pearsCount, plural,\s
+                    =0 {{orangesCount, plural,\s
+                        =0 {I have no fruit}
+                        other {I have some oranges}
+                    }}
+                    other {{orangesCount, plural,\s
+                        =0 {I have some pears}
+                        other {I have some pears and some oranges}
+                    }}
+                }}
+                other {{pearsCount, plural,\s
+                    =0 {{orangesCount, plural,\s
+                        =0 {I have some apples}
+                        other {I have some apples and some oranges}
+                    }}
+                    other {{orangesCount, plural,\s
+                        =0 {I have some apples and some pears}
+                        other {I have some apples, some pears, and some oranges}
+                    }}
+                }}
+            }""");
         assertEquals("I have no fruit", translation.format(Map.of("applesCount", 0, "pearsCount", 0, "orangesCount", 0)));
         assertEquals("I have some oranges", translation.format(Map.of("applesCount", 0, "pearsCount", 0, "orangesCount", 1)));
         assertEquals("I have some pears and some oranges", translation.format(Map.of("applesCount", 0, "pearsCount", 1, "orangesCount", 1)));
@@ -78,7 +81,7 @@ public class TranslationTest {
     @Test
     public void testPostProcessor() {
         Translation translation = new Translation("Hello {name}!", WeaveProcessor.of(
-              pending -> pending.text().toUpperCase()
+            pending -> pending.text().toUpperCase()
         ));
         assertEquals("HELLO JOHN!", translation.format(Map.of("name", "John")));
     }
@@ -86,8 +89,8 @@ public class TranslationTest {
     @Test
     public void testMultiplePostProcessors() {
         Translation translation = new Translation("Hello world!", WeaveProcessor.of(
-              pending -> pending.text().toUpperCase(),
-              pending -> pending.text().toLowerCase()
+            pending -> pending.text().toUpperCase(),
+            pending -> pending.text().toLowerCase()
         ));
         assertEquals("hello world!", translation.format(Map.of()));
     }
@@ -96,6 +99,22 @@ public class TranslationTest {
     public void testPreparedObjectsRemainUnchanged() {
         Translation translation = new Translation("Hello world!");
         assertEquals(translation.prepare().hashCode(), translation.prepare().hashCode());
+    }
+
+    @Test
+    public void testPreparedTranslationIsThreadSafe() {
+        Translation translation = new Translation("Hello {name}!");
+        PreparedTranslation prepared = translation.prepare("name");
+        List<CompletableFuture<String>> futures = new ArrayList<>();
+
+        for (int i = 0; i < 100; i++) {
+            String name = "Name" + i;
+            futures.add(CompletableFuture.supplyAsync(() -> prepared.format(name)));
+        }
+
+        for (int i = 0; i < futures.size(); i++) {
+            assertEquals("Hello Name" + i + "!", futures.get(i).join());
+        }
     }
 
 }

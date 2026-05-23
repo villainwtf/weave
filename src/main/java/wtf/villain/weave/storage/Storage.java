@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
 @RequiredArgsConstructor
@@ -22,13 +23,14 @@ public final class Storage {
 
     private final List<Integer> projectIds;
     private final List<PostProcessor> postProcessors;
-    private final Map<Integer, Project> projects = new HashMap<>();
+    private final Map<Integer, Project> projects = new ConcurrentHashMap<>();
 
     /**
      * Gets the project with the given ID.
      *
      * @param id the ID of the project to get
      * @return the project with the given ID
+     *
      * @throws IllegalArgumentException if no such project exists
      */
     @NotNull
@@ -62,9 +64,9 @@ public final class Storage {
     @NotNull
     public CompletableFuture<Void> refresh(@NotNull TolgeeClient client) {
         List<CompletableFuture<Void>> futures = projectIds.stream()
-              .map(projectId -> refreshProject(client, projectId)
-                    .thenAccept(project -> projects.put(projectId, project)))
-              .toList();
+            .map(projectId -> refreshProject(client, projectId)
+                .thenAccept(project -> projects.put(projectId, project)))
+            .toList();
 
         return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new));
     }
@@ -81,8 +83,8 @@ public final class Storage {
         CompletableFuture<Project> future = new CompletableFuture<>();
 
         int oldProjectVersion = Optional.ofNullable(projects.get(projectId))
-              .map(Project::version)
-              .orElse(0);
+            .map(Project::version)
+            .orElse(0);
 
         WeaveProcessor processor = WeaveProcessor.of(postProcessors.toArray(PostProcessor[]::new));
 
@@ -99,48 +101,51 @@ public final class Storage {
                 return;
             }
 
-            Map<String, Map<String, Translation>> translations = new HashMap<>();
+            Map<String, Map<String, Translation>> translations = new ConcurrentHashMap<>();
 
             List<CompletableFuture<Void>> languageFutures = languages.stream()
-                  .map(language -> client.queryTranslations(client, projectId, language.tag())
-                        .thenAccept(map -> {
-                            Map<String, String> keyToValue = map.get(language.tag());
+                .map(language -> client.queryTranslations(client, projectId, language.tag())
+                    .thenAccept(map -> {
+                        Map<String, String> keyToValue = map.get(language.tag());
 
-                            if (keyToValue == null) {
-                                // This should never happen since we're querying the translations for the given language.
-                                throw new IllegalStateException("No translations for language " + language.tag());
+                        if (keyToValue == null) {
+                            // This should never happen since we're querying the translations for the given language.
+                            throw new IllegalStateException("No translations for language " + language.tag());
+                        }
+
+                        Map<String, Translation> translationMap = new HashMap<>();
+
+                        keyToValue.forEach((key, value) -> {
+                            if (value == null) {
+                                // The value can be null if this key is not translated in the given language.
+                                // Example: "en" has "hello" -> "Hello World!", but "de" doesn't have this key translated yet.
+                                return;
                             }
 
-                            Map<String, Translation> translationMap = new HashMap<>();
+                            // We iterate through each (translation key -> text) pair and add it to the map.
+                            translationMap.put(key, new Translation(value, processor));
+                        });
 
-                            keyToValue.forEach((key, value) -> {
-                                if (value == null) {
-                                    // The value can be null if this key is not translated in the given language.
-                                    // Example: "en" has "hello" -> "Hello World!", but "de" doesn't have this key translated yet.
-                                    return;
-                                }
-
-                                // We iterate through each (translation key -> text) pair and add it to the map.
-                                translationMap.put(key, new Translation(value, processor));
-                            });
-
-                            translations.put(language.tag(), translationMap);
-                        }))
-                  .toList();
+                        translations.put(Language.findOrCreate(language.tag(), language.name()).tag(), translationMap);
+                    }))
+                .toList();
 
             CompletableFuture.allOf(languageFutures.toArray(CompletableFuture[]::new))
-                  .whenComplete((unused, throwable1) -> {
-                      if (throwable1 != null) {
-                          future.completeExceptionally(throwable1);
-                          return;
-                      }
+                .whenComplete((unused, throwable1) -> {
+                    if (throwable1 != null) {
+                        future.completeExceptionally(throwable1);
+                        return;
+                    }
 
-                      future.complete(new Project(
-                            projectId,
-                            languages.stream().collect(HashMap::new, (map, language) -> map.put(language.tag(), Language.findOrCreate(language.tag(), language.name())), HashMap::putAll),
-                            translations,
-                            oldProjectVersion + 1));
-                  });
+                    future.complete(new Project(
+                        projectId,
+                        languages.stream().collect(HashMap::new, (map, language) -> {
+                            Language resolved = Language.findOrCreate(language.tag(), language.name());
+                            map.put(resolved.tag(), resolved);
+                        }, HashMap::putAll),
+                        translations,
+                        oldProjectVersion + 1));
+                });
         });
 
         return future;

@@ -157,18 +157,18 @@ public final class WeaveInstanceBuilder {
         CompletableFuture<Weave> future = new CompletableFuture<>();
 
         OkHttpClient httpClient = new OkHttpClient.Builder()
-              .addInterceptor(new TolgeeInterceptor(apiKey))
-              .connectTimeout(connectTimeout)
-              .readTimeout(readTimeout)
-              .writeTimeout(writeTimeout)
-              .build();
+            .addInterceptor(new TolgeeInterceptor(apiKey))
+            .connectTimeout(connectTimeout)
+            .readTimeout(readTimeout)
+            .writeTimeout(writeTimeout)
+            .build();
 
         TolgeeClient tolgeeClient = new Retrofit.Builder()
-              .client(httpClient)
-              .baseUrl(endpoint)
-              .addConverterFactory(JacksonConverterFactory.create(new ObjectMapper()))
-              .build()
-              .create(TolgeeClient.class);
+            .client(httpClient)
+            .baseUrl(endpoint)
+            .addConverterFactory(JacksonConverterFactory.create(new ObjectMapper()))
+            .build()
+            .create(TolgeeClient.class);
 
         Storage storage = new Storage(projectIds, processors);
 
@@ -177,12 +177,12 @@ public final class WeaveInstanceBuilder {
                 future.completeExceptionally(throwable);
             } else {
                 future.complete(new Weave.Impl(
-                      tolgeeClient,
-                      () -> {
-                          httpClient.dispatcher().executorService().shutdown();
-                          httpClient.connectionPool().evictAll();
-                      },
-                      storage
+                    tolgeeClient,
+                    () -> {
+                        httpClient.dispatcher().executorService().shutdown();
+                        httpClient.connectionPool().evictAll();
+                    },
+                    storage
                 ));
             }
         });

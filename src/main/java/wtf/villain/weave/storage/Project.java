@@ -16,6 +16,7 @@ public record Project(int id,
      *
      * @param tag the tag of the language to get
      * @return the language with the given tag
+     *
      * @throws IllegalArgumentException if the given language is not supported by this project
      */
     @NotNull
@@ -37,7 +38,7 @@ public record Project(int id,
      */
     @Nullable
     public Language language(@NotNull String tag) {
-        return this.supportedLanguages.get(tag);
+        return getByTag(this.supportedLanguages, tag);
     }
 
     /**
@@ -47,7 +48,7 @@ public record Project(int id,
      * @return whether or not the given language tag is supported by this project
      */
     public boolean supports(@NotNull String languageTag) {
-        return this.supportedLanguages.containsKey(languageTag);
+        return this.language(languageTag) != null;
     }
 
     /**
@@ -57,7 +58,7 @@ public record Project(int id,
      * @return whether or not the given language is supported by this project
      */
     public boolean supports(@NotNull Language language) {
-        return this.supportedLanguages.containsKey(language.tag());
+        return this.supports(language.tag());
     }
 
     /**
@@ -65,6 +66,7 @@ public record Project(int id,
      *
      * @param languageTag the language tag to get the translations for
      * @return the translations for the given language tag
+     *
      * @throws IllegalArgumentException if the given language is not supported by this project
      * @throws IllegalStateException    if there are no translations for the given language
      */
@@ -78,19 +80,21 @@ public record Project(int id,
      *
      * @param language the language to get the translations for
      * @return the translations for the given language
+     *
      * @throws IllegalArgumentException if the given language is not supported by this project
      * @throws IllegalStateException    if there are no translations for the given language
      */
     @NotNull
     public Map<String, Translation> translations(@NotNull Language language) {
-        Map<String, Translation> translations = this.translations().get(language.tag());
+        String tag = Language.normalizeTag(language.tag());
+        Map<String, Translation> translations = getByTag(this.translations(), tag);
 
         if (translations == null) {
-            if (this.supportedLanguages.containsKey(language.tag())) {
-                throw new IllegalStateException("No translations for language " + language.tag() + " in project " + this.id());
+            if (this.language(tag) != null) {
+                throw new IllegalStateException("No translations for language " + tag + " in project " + this.id());
             }
 
-            throw new IllegalArgumentException("Language " + language.tag() + " is not supported by project " + this.id());
+            throw new IllegalArgumentException("Language " + tag + " is not supported by project " + this.id());
         }
 
         return translations;
@@ -102,11 +106,36 @@ public record Project(int id,
      * @param language the language to get the translation for
      * @param key      the key to get the translation for
      * @return the translation for the given language and key
+     *
      * @throws IllegalArgumentException if the given language is not supported by this project
      * @throws IllegalStateException    if there are no translations for the given language
      */
     @Nullable
     public Translation translation(@NotNull Language language, @NotNull String key) {
         return this.translations(language).get(key);
+    }
+
+    @Nullable
+    private static <T> T getByTag(@NotNull Map<String, T> map, @NotNull String tag) {
+        String normalizedTag = Language.normalizeTag(tag);
+        T value = map.get(normalizedTag);
+
+        if (value != null) {
+            return value;
+        }
+
+        value = map.get(tag);
+
+        if (value != null) {
+            return value;
+        }
+
+        for (Map.Entry<String, T> entry : map.entrySet()) {
+            if (Language.normalizeTag(entry.getKey()).equals(normalizedTag)) {
+                return entry.getValue();
+            }
+        }
+
+        return null;
     }
 }

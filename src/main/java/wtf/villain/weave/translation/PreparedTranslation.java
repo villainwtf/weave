@@ -11,16 +11,13 @@ import java.util.Map;
 public final class PreparedTranslation {
 
     private final Translation translation;
-    private final MessageFormat messageFormat;
-
     private final String[] keys;
-    private final Map<String, Object> preparedFormats = new HashMap<>();
+    private final ThreadLocal<State> state;
 
     PreparedTranslation(@NotNull Translation translation, @NotNull List<String> keys) {
         this.translation = translation;
-        this.messageFormat = new MessageFormat(translation.value());
         this.keys = keys.toArray(new String[0]);
-        keys.forEach(key -> preparedFormats.put(key, null));
+        this.state = ThreadLocal.withInitial(() -> new State(translation.value(), this.keys));
     }
 
     /**
@@ -31,11 +28,9 @@ public final class PreparedTranslation {
      */
     @NotNull
     public String format(@NotNull Object... objects) {
-        for (int i = 0; i < keys.length; i++) {
-            preparedFormats.put(keys[i], objects[i]);
-        }
-
-        return translation.processor().apply(translation, this.messageFormat.format(preparedFormats));
+        State state = this.state.get();
+        state.set(keys, objects);
+        return translation.processor().apply(translation, state.format());
     }
 
     /**
@@ -46,11 +41,38 @@ public final class PreparedTranslation {
      */
     @NotNull
     public String format(@NotNull List<Object> objects) {
-        for (int i = 0; i < keys.length; i++) {
-            preparedFormats.put(keys[i], objects.get(i));
+        State state = this.state.get();
+        state.set(keys, objects);
+        return translation.processor().apply(translation, state.format());
+    }
+
+    private static final class State {
+        private final MessageFormat messageFormat;
+        private final Map<String, Object> formats = new HashMap<>();
+
+        private State(@NotNull String value, @NotNull String[] keys) {
+            this.messageFormat = new MessageFormat(value);
+            for (String key : keys) {
+                this.formats.put(key, null);
+            }
         }
 
-        return translation.processor().apply(translation, this.messageFormat.format(preparedFormats));
+        private void set(@NotNull String[] keys, @NotNull Object[] objects) {
+            for (int i = 0; i < keys.length; i++) {
+                this.formats.put(keys[i], objects[i]);
+            }
+        }
+
+        private void set(@NotNull String[] keys, @NotNull List<Object> objects) {
+            for (int i = 0; i < keys.length; i++) {
+                this.formats.put(keys[i], objects.get(i));
+            }
+        }
+
+        @NotNull
+        private String format() {
+            return this.messageFormat.format(this.formats);
+        }
     }
 
     @Override

@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "wtf.villain"
-version = "1.0.0"
+version = "1.0.1"
 
 java {
     toolchain {
