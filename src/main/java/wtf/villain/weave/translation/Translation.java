@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import wtf.villain.weave.translation.process.WeaveProcessor;
+import wtf.villain.weave.util.InvalidFormatException;
 
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,8 @@ public final class Translation {
      *
      * @param formats the formats to use
      * @return the formatted translation
+     *
+     * @throws InvalidFormatException if the number of objects does not match the number of keys
      */
     @NotNull
     public String format(@NotNull Map<String, Object> formats) {
@@ -46,7 +49,8 @@ public final class Translation {
      * @param formats the formats to use
      * @return the formatted translation
      *
-     * @throws IllegalStateException if the translation has not been prepared
+     * @throws IllegalStateException  if the translation has not been prepared
+     * @throws InvalidFormatException if the number of objects does not match the number of keys
      */
     @NotNull
     public String format(@NotNull Object... formats) {

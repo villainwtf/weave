@@ -2,6 +2,7 @@ package wtf.villain.weave.translation;
 
 import com.ibm.icu.text.MessageFormat;
 import org.jetbrains.annotations.NotNull;
+import wtf.villain.weave.util.InvalidFormatException;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -25,6 +26,8 @@ public final class PreparedTranslation {
      *
      * @param objects the objects to use
      * @return the formatted translation
+     *
+     * @throws InvalidFormatException if the number of objects does not match the number of keys
      */
     @NotNull
     public String format(@NotNull Object... objects) {
@@ -38,6 +41,8 @@ public final class PreparedTranslation {
      *
      * @param objects the objects to use
      * @return the formatted translation
+     *
+     * @throws InvalidFormatException if the number of objects does not match the number of keys
      */
     @NotNull
     public String format(@NotNull List<Object> objects) {
@@ -52,18 +57,37 @@ public final class PreparedTranslation {
 
         private State(@NotNull String value, @NotNull String[] keys) {
             this.messageFormat = new MessageFormat(value);
+
             for (String key : keys) {
                 this.formats.put(key, null);
             }
         }
 
         private void set(@NotNull String[] keys, @NotNull Object[] objects) {
+            if (objects.length < keys.length) {
+                throw new InvalidFormatException(String.format(
+                    "Expected %d format arguments (keys: %s), but got %d",
+                    keys.length,
+                    Arrays.toString(keys),
+                    objects.length
+                ));
+            }
+
             for (int i = 0; i < keys.length; i++) {
                 this.formats.put(keys[i], objects[i]);
             }
         }
 
         private void set(@NotNull String[] keys, @NotNull List<Object> objects) {
+            if (objects.size() < keys.length) {
+                throw new InvalidFormatException(String.format(
+                    "Expected %d format arguments (keys: %s), but got %d",
+                    keys.length,
+                    Arrays.toString(keys),
+                    objects.size()
+                ));
+            }
+
             for (int i = 0; i < keys.length; i++) {
                 this.formats.put(keys[i], objects.get(i));
             }
