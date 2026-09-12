@@ -12,6 +12,7 @@ import wtf.villain.weave.translation.process.WeaveProcessor;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -113,6 +114,8 @@ public final class Storage {
                             throw new IllegalStateException("No translations for language " + language.tag());
                         }
 
+                        Language resolvedLanguage = Language.findOrCreate(language.tag(), language.name());
+                        Locale translationLocale = Locale.forLanguageTag(resolvedLanguage.tag());
                         Map<String, Translation> translationMap = new HashMap<>();
 
                         keyToValue.forEach((key, value) -> {
@@ -123,10 +126,10 @@ public final class Storage {
                             }
 
                             // We iterate through each (translation key -> text) pair and add it to the map.
-                            translationMap.put(key, new Translation(value, processor));
+                            translationMap.put(key, Translation.withLocale(value, processor, translationLocale));
                         });
 
-                        translations.put(Language.findOrCreate(language.tag(), language.name()).tag(), translationMap);
+                        translations.put(resolvedLanguage.tag(), translationMap);
                     }))
                 .toList();
 

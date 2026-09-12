@@ -2,12 +2,10 @@ package wtf.villain.weave.translation;
 
 import com.ibm.icu.text.MessageFormat;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import wtf.villain.weave.util.InvalidFormatException;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public final class PreparedTranslation {
 
@@ -18,7 +16,7 @@ public final class PreparedTranslation {
     PreparedTranslation(@NotNull Translation translation, @NotNull List<String> keys) {
         this.translation = translation;
         this.keys = keys.toArray(new String[0]);
-        this.state = ThreadLocal.withInitial(() -> new State(translation.value(), this.keys));
+        this.state = ThreadLocal.withInitial(() -> new State(translation.value(), this.keys, translation.locale()));
     }
 
     /**
@@ -55,8 +53,10 @@ public final class PreparedTranslation {
         private final MessageFormat messageFormat;
         private final Map<String, Object> formats = new HashMap<>();
 
-        private State(@NotNull String value, @NotNull String[] keys) {
-            this.messageFormat = new MessageFormat(value);
+        private State(@NotNull String value, @NotNull String[] keys, @Nullable Locale locale) {
+            this.messageFormat = locale == null
+                ? new MessageFormat(value)
+                : new MessageFormat(value, locale);
 
             for (String key : keys) {
                 this.formats.put(key, null);

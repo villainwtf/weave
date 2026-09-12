@@ -1,17 +1,19 @@
 package wtf.villain.weave.translation;
 
+import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import wtf.villain.weave.translation.process.WeaveProcessor;
 import wtf.villain.weave.util.InvalidFormatException;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Getter
-@RequiredArgsConstructor
 public final class Translation {
 
     @NotNull
@@ -20,11 +22,54 @@ public final class Translation {
     @NotNull
     private final WeaveProcessor processor;
 
+    @Getter(AccessLevel.NONE)
+    @Nullable
+    private final Locale locale;
+
     public Translation(@NotNull String value) {
         this(value, WeaveProcessor.of());
     }
 
+    public Translation(@NotNull String value, @NotNull WeaveProcessor processor) {
+        this(value, processor, null);
+    }
+
+    private Translation(@NotNull String value, @NotNull WeaveProcessor processor, @Nullable Locale locale) {
+        this.value = value;
+        this.processor = processor;
+        this.locale = locale;
+    }
+
     private final ThreadLocal<PreparedTranslation> prepared = new ThreadLocal<>();
+
+    /**
+     * Creates a translation whose ICU message formatting uses a fixed locale.
+     *
+     * @param value  the ICU message pattern
+     * @param locale the formatting locale
+     * @return a locale-aware translation
+     */
+    @NotNull
+    public static Translation withLocale(@NotNull String value, @NotNull Locale locale) {
+        return withLocale(value, WeaveProcessor.of(), locale);
+    }
+
+    /**
+     * Creates a processed translation whose ICU message formatting uses a fixed locale.
+     *
+     * @param value     the ICU message pattern
+     * @param processor the processor applied after formatting
+     * @param locale    the formatting locale
+     * @return a locale-aware translation
+     */
+    @NotNull
+    public static Translation withLocale(
+        @NotNull String value,
+        @NotNull WeaveProcessor processor,
+        @NotNull Locale locale
+    ) {
+        return new Translation(value, processor, Objects.requireNonNull(locale, "locale"));
+    }
 
     /**
      * Formats the translation with the given arguments.
@@ -103,6 +148,11 @@ public final class Translation {
         if (prepared != null) return prepared; // Avoid copying the array if possible
 
         return prepare(List.of(keys));
+    }
+
+    @Nullable
+    Locale locale() {
+        return locale;
     }
 
     @Override
